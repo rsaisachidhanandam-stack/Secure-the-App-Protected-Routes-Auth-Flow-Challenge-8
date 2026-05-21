@@ -1,4 +1,4 @@
-import { createContext, useState } from 'react'
+import { createContext, useState, useEffect } from 'react'
 
 export const AuthContext = createContext(null)
 
@@ -10,13 +10,23 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(null)
 
+  // Layer 2 — Read token from localStorage on app start
+  useEffect(() => {
+    const storedToken = localStorage.getItem('authToken')
+    const storedUser = localStorage.getItem('authUser')
+    if (storedToken && storedUser) {
+      setToken(storedToken)
+      setUser(JSON.parse(storedUser))
+    }
+  }, []) // runs once on mount — restores auth state after refresh
+
   // BUG 2: Login handles state but fails to persist the session to localStorage
   const login = (userData, fakeToken) => {
     setUser(userData)
     setToken(fakeToken)
+    localStorage.setItem('authToken', fakeToken)
+    localStorage.setItem('authUser', JSON.stringify(userData))
     
-    // ❌ Missing: localStorage.setItem('authToken', fakeToken)
-    // ❌ Missing: localStorage.setItem('authUser', JSON.stringify(userData))
     console.log('✅ User logged in:', userData.email)
   }
 
@@ -24,12 +34,10 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null)
     setToken(null)
-    // ❌ Missing: localStorage.removeItem('authToken')
-    // ❌ Missing: localStorage.removeItem('authUser')
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('authUser')
     console.log('🚪 User logged out')
   }
-
-  // BUG 2 (Part 2): Missing useEffect to load user from localStorage on mount
 
   const value = {
     user,
